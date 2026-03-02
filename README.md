@@ -269,11 +269,11 @@ All timing decisions are derived from measured or calculated worst-case latencie
 
 | Member | Primary Responsibility |
 |---|---|
-| Member 1 | Hardware assembly — conveyor frame, wiring, motor driver |
-| Member 2 | Real-time software — state machine, ISR handlers, SCHED_FIFO threading |
-| Member 3 | Sensor integration — flow meter calibration, IR sensor tuning |
-| Member 4 | Monitoring & data — LCD driver, MQTT dashboard, CSV logging |
-| Member 5 | Testing, documentation & promotion — unit tests, GitHub Pages, social media |
+| Chandan and Radha | Hardware assembly — conveyor frame, wiring, motor driver |
+| Bonolo and Abody | Real time software — state machine, ISR handlers, SCHED_FIFO threading |
+| Mena, Chandan | Sensor integration — flow meter calibration, IR sensor tuning |
+| Mena | Monitoring & data — LCD driver, MQTT dashboard, CSV logging |
+| Mena and Radha | Testing, documentation & promotion — unit tests, GitHub Pages, social media |
 
 ### 8.3 Unit Testing Plan
 
