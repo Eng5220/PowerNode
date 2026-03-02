@@ -18,8 +18,8 @@ out/
 # Executables
 filling_machine
 filling_machine.exe
-tests
-tests.exe
+filling_tests
+filling_tests.exe
 
 # CMake generated files
 CMakeCache.txt
