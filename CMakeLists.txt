@@ -11,12 +11,11 @@ include_directories(src)
 # ── Main executable ───────────────────────────────────────────────────────────
 add_executable(filling_machine
     src/main.cpp
-    src/hardware/ConveyorMotor.cpp
-    src/hardware/SolenoidValve.cpp
+    src/hardware/UltrasonicSensor.cpp
+    src/hardware/PumpController.cpp
     src/hardware/FlowMeter.cpp
-    src/hardware/IRSensor.cpp
-    src/state/FillingStateMachine.cpp
-    src/monitor/MonitorThread.cpp
+    src/state/FillingController.cpp
+    src/monitor/Monitor.cpp
     src/utils/Timer.cpp
     src/utils/Logger.cpp
 )
@@ -35,14 +34,14 @@ enable_testing()
 # ── Test executable ───────────────────────────────────────────────────────────
 add_executable(filling_tests
     tests/FlowMeterTest.cpp
-    tests/ConveyorMotorTest.cpp
-    tests/FillingStateMachineTest.cpp
-    src/hardware/ConveyorMotor.cpp
-    src/hardware/SolenoidValve.cpp
+    tests/UltrasonicSensorTest.cpp
+    tests/PumpControllerTest.cpp
+    tests/FillingControllerTest.cpp
+    src/hardware/UltrasonicSensor.cpp
+    src/hardware/PumpController.cpp
     src/hardware/FlowMeter.cpp
-    src/hardware/IRSensor.cpp
-    src/state/FillingStateMachine.cpp
-    src/monitor/MonitorThread.cpp
+    src/state/FillingController.cpp
+    src/monitor/Monitor.cpp
     src/utils/Timer.cpp
     src/utils/Logger.cpp
 )
