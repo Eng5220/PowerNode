@@ -169,13 +169,35 @@ The system operates using a simple **state machine**.
 
 ## Control Logic
 
-```mermaid
-stateDiagram-v2
-    [*] --> WAITING
-    WAITING --> CONFIRMATION : Bottle detected
-    CONFIRMATION --> FILLING : Bottle stable
-    FILLING --> FILL_COMPLETE : Target volume reached
-    FILL_COMPLETE --> WAITING : Reset system
+System Start
+│
+▼
+┌───────────────┐
+│ WAITING │
+│ No bottle yet │
+└───────┬───────┘
+│ bottle detected
+▼
+┌───────────────┐
+│ CONFIRMATION │
+│ Bottle stable │
+└───────┬───────┘
+│ confirmed
+▼
+┌───────────────┐
+│ FILLING │
+│ Pump ON │
+│ Count pulses │
+└───────┬───────┘
+│ volume reached
+▼
+┌───────────────┐
+│ FILL COMPLETE │
+│ Pump OFF │
+└───────┬───────┘
+│
+▼
+WAITING
 
 ---
 
