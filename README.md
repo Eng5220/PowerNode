@@ -78,7 +78,7 @@
 
 ### 1. Prerequisites
 
-Ensure your Raspberry Pi 5 is running **Raspberry Pi OS (64-bit, Bookworm)** and has the following installed:
+Ensure your Raspberry Pi 5 is running **Raspberry Pi OS (Linux)** and has the following installed:
 
 ```bash
 sudo apt update && sudo apt upgrade -y
