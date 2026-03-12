@@ -9,59 +9,66 @@ using Clock = std::chrono::steady_clock;
 
 FillingController::FillingController(UltrasonicSensor& sensor,
                                      PumpController& pump,
+                                     FlowMeter& flowMeter,
                                      double targetDistanceCM,
                                      double toleranceCM,
-                                     int holdTimeSeconds)
+                                     int holdTimeSeconds,
+                                     double targetVolumeML)
     : sensor_(sensor),
       pump_(pump),
+      flowMeter_(flowMeter),
       targetDistanceCM_(targetDistanceCM),
       toleranceCM_(toleranceCM),
       holdTimeSeconds_(holdTimeSeconds),
+      targetVolumeML_(targetVolumeML),
       state_(SystemState::WAITING),
       holdStartTime_(),
-      lastDistance_(-1.0)
+      lastDistance_(-1.0),
+      bottleCount_(0)
 {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 void FillingController::tick() {
-    // --- Read distance from ultrasonic sensor ---
-    lastDistance_ = sensor_.getDistanceCM();
-
-    if (lastDistance_ < 0) {
-        // Sensor timeout (matches Python: "Sensor timeout")
-        std::cout << "Sensor timeout\n";
-
-        // If we haven't started the pump yet, reset the hold timer
-        if (state_ == SystemState::CONFIRMATION) {
-            state_ = SystemState::WAITING;
-        }
-        return;
-    }
-
     std::cout << std::fixed << std::setprecision(2);
-    std::cout << "Measured Distance = " << lastDistance_ << " cm\n";
 
-    // --- State machine ---
     switch (state_) {
 
-    case SystemState::WAITING:
-        // Check if bottle is within target range
+    // ── WAITING: looking for a bottle ────────────────────────────────────────
+    case SystemState::WAITING: {
+        lastDistance_ = sensor_.getDistanceCM();
+
+        if (lastDistance_ < 0) {
+            std::cout << "Sensor timeout\n";
+            return;
+        }
+
+        std::cout << "Measured Distance = " << lastDistance_ << " cm\n";
+
         if (sensor_.isBottlePresent(targetDistanceCM_, toleranceCM_)) {
             // Bottle detected — start hold timer
-            // (matches Python: start_hold_time = time.time())
             holdStartTime_ = Clock::now();
             state_ = SystemState::CONFIRMATION;
             std::cout << targetDistanceCM_ << " cm detected, starting timer...\n";
         }
         break;
+    }
 
+    // ── CONFIRMATION: bottle must stay stable for holdTimeSeconds_ ───────────
     case SystemState::CONFIRMATION: {
-        // Check if bottle is still in range
+        lastDistance_ = sensor_.getDistanceCM();
+
+        if (lastDistance_ < 0) {
+            std::cout << "Sensor timeout, timer reset.\n";
+            state_ = SystemState::WAITING;
+            return;
+        }
+
+        std::cout << "Measured Distance = " << lastDistance_ << " cm\n";
+
         if (!sensor_.isBottlePresent(targetDistanceCM_, toleranceCM_)) {
             // Bottle moved away — reset timer
-            // (matches Python: "Distance moved away from 12 cm, timer reset.")
             std::cout << "Distance moved away from " << targetDistanceCM_
                       << " cm, timer reset.\n";
             state_ = SystemState::WAITING;
@@ -70,31 +77,51 @@ void FillingController::tick() {
 
         // Bottle still present — check elapsed time
         double elapsed = getHoldElapsed();
-        std::cout << "Held for " << std::fixed << std::setprecision(1)
-                  << elapsed << " / " << holdTimeSeconds_ << " seconds\n";
+        std::cout << std::setprecision(1)
+                  << "Held for " << elapsed << " / " << holdTimeSeconds_
+                  << " seconds\n";
 
         if (elapsed >= holdTimeSeconds_) {
-            // Hold time reached — start pump!
-            // (matches Python: GPIO.gpio_write(h, PUMP, 1))
+            // Hold time reached — reset flow counter and start pump
+            flowMeter_.resetCount();
             pump_.turnOn();
             state_ = SystemState::FILLING;
+            std::cout << "Bottle confirmed! Starting fill to "
+                      << std::setprecision(0) << targetVolumeML_ << " ml\n";
         }
         break;
     }
 
-    case SystemState::FILLING:
-        // Pump is running
-        // TODO: integrate FlowMeter pulse counting here
-        // When flow >= TARGET_VOLUME_ML → transition to FILL_COMPLETE
-        std::cout << "Filling in progress...\n";
-        break;
+    // ── FILLING: pump running, counting flow pulses ──────────────────────────
+    case SystemState::FILLING: {
+        double currentML = flowMeter_.getVolumeML();
+        int pulses = flowMeter_.getPulseCount();
 
-    case SystemState::FILL_COMPLETE:
-        // Pump off, reset for next bottle
-        pump_.turnOff();
+        std::cout << std::setprecision(1)
+                  << "Filling: " << currentML << " ml / "
+                  << targetVolumeML_ << " ml"
+                  << "  (" << pulses << " pulses)\n";
+
+        if (flowMeter_.hasReachedTarget(targetVolumeML_)) {
+            // Target volume reached — stop pump
+            pump_.turnOff();
+            bottleCount_++;
+            state_ = SystemState::FILL_COMPLETE;
+            std::cout << std::setprecision(1)
+                      << "Target reached! Dispensed " << currentML << " ml. "
+                      << "Bottles filled: " << bottleCount_ << "\n";
+        }
+        break;
+    }
+
+    // ── FILL_COMPLETE: pump off, ready for next bottle ───────────────────────
+    case SystemState::FILL_COMPLETE: {
+        // Reset flow counter for next bottle
+        flowMeter_.resetCount();
         state_ = SystemState::WAITING;
         std::cout << "Fill complete. Waiting for next bottle...\n";
         break;
+    }
     }
 }
 
@@ -120,4 +147,16 @@ double FillingController::getHoldElapsed() const {
     }
     auto now = Clock::now();
     return std::chrono::duration<double>(now - holdStartTime_).count();
+}
+
+double FillingController::getCurrentVolumeML() const {
+    return flowMeter_.getVolumeML();
+}
+
+double FillingController::getTargetVolumeML() const {
+    return targetVolumeML_;
+}
+
+int FillingController::getBottleCount() const {
+    return bottleCount_;
 }

@@ -26,10 +26,10 @@ enum class SystemState {
  * @brief Main state machine that orchestrates the filling cycle.
  *
  * Translates the Python prototype's main loop logic:
- *   - Check ultrasonic distance
- *   - If within range, start hold timer
- *   - If held for 60 seconds, start pump
- *   - (Future: stop pump when flow meter reaches target volume)
+ *   - Check ultrasonic distance → detect bottle
+ *   - Hold timer (60 seconds) → confirm bottle stable
+ *   - Start pump → count flow meter pulses
+ *   - Stop pump when target volume reached
  *
  * The FillingController depends on abstractions (hardware objects),
  * not on raw GPIO — supporting Dependency Inversion (SOLID "D").
@@ -37,17 +37,21 @@ enum class SystemState {
 class FillingController {
 public:
     /**
-     * @param sensor  Reference to the ultrasonic sensor.
-     * @param pump    Reference to the pump controller.
-     * @param targetDistanceCM  Centre of bottle detection range.
-     * @param toleranceCM       ± tolerance for detection.
-     * @param holdTimeSeconds   How long bottle must be stable.
+     * @param sensor           Reference to the ultrasonic sensor.
+     * @param pump             Reference to the pump controller.
+     * @param flowMeter        Reference to the flow meter.
+     * @param targetDistanceCM Centre of bottle detection range.
+     * @param toleranceCM      ± tolerance for detection.
+     * @param holdTimeSeconds  How long bottle must be stable.
+     * @param targetVolumeML   Target fill volume in millilitres.
      */
     FillingController(UltrasonicSensor& sensor,
                       PumpController& pump,
+                      FlowMeter& flowMeter,
                       double targetDistanceCM,
                       double toleranceCM,
-                      int holdTimeSeconds);
+                      int holdTimeSeconds,
+                      double targetVolumeML);
 
     /**
      * @brief Run one cycle of the state machine.
@@ -66,20 +70,32 @@ public:
     /** @brief Get seconds elapsed in the hold timer (CONFIRMATION state). */
     double getHoldElapsed() const;
 
+    /** @brief Get the current volume dispensed in ml. */
+    double getCurrentVolumeML() const;
+
+    /** @brief Get the target volume in ml. */
+    double getTargetVolumeML() const;
+
+    /** @brief Get the total number of bottles filled this session. */
+    int getBottleCount() const;
+
 private:
     // Hardware references
     UltrasonicSensor& sensor_;
     PumpController& pump_;
+    FlowMeter& flowMeter_;
 
     // Settings
     double targetDistanceCM_;
     double toleranceCM_;
     int holdTimeSeconds_;
+    double targetVolumeML_;
 
     // State
     SystemState state_;
     std::chrono::steady_clock::time_point holdStartTime_;
     double lastDistance_;
+    int bottleCount_;
 };
 
 #endif // FILLINGCONTROLLER_H
