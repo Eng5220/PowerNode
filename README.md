@@ -1,258 +1,191 @@
-# Automatice Water DC Filling Machine
-### Real-Time Embedded Project
+# SmartFlow 💧
 
-**Real-Time State Machine | Flow Meter | Ultrasonic Detection | Embedded Control**  
-**Platform:** Raspberry Pi 5 and C++  
-**Components:** DC Water Pump | YF-S401 Flow Meter | HC-SR04 Ultrasonic Sensor  
+> **Real-time automated filling system with intelligent level detection and precision flow control.**
 
----
-
-## Project Overview
-
-This project implements a small automatic bottle filling system using a Raspberry Pi 5 programmed in C++. The goal is to demonstrate how a low-cost embedded system can automate a water dispensing process similar to those used in industrial filling systems.
-
-The system detects when a bottle is placed under the filling nozzle using an ultrasonic sensor. Once the bottle is detected and remains in place for a short confirmation period, the Raspberry Pi activates a small DC water pump.
-
-Water flows through a flow sensor that produces electrical pulses proportional to the water volume. The Raspberry Pi counts these pulses in real time to determine how much water has been dispensed. When the target volume is reached, the pump is switched off automatically.
-
-The complete automated cycle is:
-
-detect → pump → measure → stop
----
-
-# Project Details
-
-| Field | Details |
-|------|------|
-| **Project Title** | Automatic Bottle Water Filling System |
-| **Platform** | Raspberry Pi 5 — C++ |
-| **Core Mechanism** | Bottle detection → automatic filling → stop at target volume |
-| **Key Sensors** | YF-S401 flow meter + HC-SR04 ultrasonic sensor |
-| **Control Logic** | Real-time state machine |
-| **Hardware Cost** | £35 – £60 |
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Platform](https://img.shields.io/badge/platform-Raspberry%20Pi%205-red.svg)
+![Language](https://img.shields.io/badge/language-C%2B%2B17-blue.svg)
+![OS](https://img.shields.io/badge/OS-Linux%20%28Raspberry%20Pi%20OS%29-green.svg)
+![Status](https://img.shields.io/badge/status-active-brightgreen.svg)
 
 ---
 
-# Problem Statement
+## 📌 Overview
 
-Manually filling bottles is slow and inconsistent. Human error often causes bottles to be overfilled or underfilled. Industrial bottling plants solve this using automated filling machines, but these systems are expensive.
-
-This project explores whether a similar concept can be implemented using a Raspberry Pi and low-cost sensors.
-
-The main challenges are:
-
-- Detecting when a bottle is positioned correctly
-- Measuring water volume accurately
-- Turning the pump on and off at the correct moment
-- Coordinating sensors and actuators reliably
+**SmartFlow** is a real-time automated filling system built in **C++** and running natively on **Linux (Raspberry Pi OS)** on a **Raspberry Pi 5**. It leverages the Pi's GPIO interface to communicate with level sensors and control pumps/valves, delivering a fully automated, precise, and intelligent filling solution — with no manual intervention required.
 
 ---
 
-# System Architecture
+## ✨ Features
 
-## Physical Layout
+- 🔄 **Real-Time Level Monitoring** — Continuous polling of liquid levels via GPIO-connected sensors
+- 🧠 **Smart Level Detection** — Threshold-based logic triggers automatic fill and stop actions
+- ⚙️ **Automated Flow Control** — Relay-controlled pump and valve management
+- 📊 **Live Terminal Dashboard** — Real-time status output directly in the Linux terminal
+- 🔔 **Alerts & Notifications** — System warnings for overflow, underflow, and sensor faults
+- 📁 **Data Logging** — CSV-based event and fill history logging
+- 🔌 **GPIO Native Integration** — Direct hardware control via `lgpio` / `gpiod` on Raspberry Pi 5
+- 🧵 **Multithreaded Architecture** — Sensor reading and control logic run on separate threads
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Language | C++17 |
+| Hardware | Raspberry Pi 5 |
+| Operating System | Raspberry Pi OS (Debian Bookworm, 64-bit) |
+| GPIO Library | `lgpio` / `libgpiod` |
+| Build System | CMake 3.16+ |
+| Level Sensor | Ultrasonic (HC-SR04) / Float Switch |
+| Actuator Control | 5V Relay Module (Pump & Valve) |
+| Communication | I2C / GPIO Digital Pins |
+| Data Logging | CSV flat-file logging |
+| Threading | POSIX Threads (`pthread`) / `std::thread` |
+
+---
+
+## 🔧 Hardware Requirements
+
+| Component | Details |
+|-----------|---------|
+| **Raspberry Pi 5** | 4GB / 8GB RAM |
+| **MicroSD Card** | 16GB+ (Class 10) |
+| **Ultrasonic Sensor** | HC-SR04 (level detection) |
+| **Float Switch** | Optional backup level detection |
+| **Relay Module** | 5V single or dual channel |
+| **Water Pump** | 5V/12V DC submersible pump |
+| **Solenoid Valve** | 12V normally-closed valve |
+| **Power Supply** | 5V 5A USB-C (Pi 5) + 12V for actuators |
+| **Jumper Wires** | Male-to-female GPIO connections |
+
+---
+
+## 📐 GPIO Pin Mapping
+
+| GPIO Pin | Component | Direction |
+|----------|-----------|-----------|
+| GPIO 17 | HC-SR04 TRIG | Output |
+| GPIO 27 | HC-SR04 ECHO | Input |
+| GPIO 22 | Relay (Pump) | Output |
+| GPIO 23 | Relay (Valve) | Output |
+| GPIO 24 | Float Switch | Input |
+
+> ⚠️ Always use a **voltage divider** on the ECHO pin (HC-SR04 outputs 5V; RPi GPIO is 3.3V max).
+
+---
+
+## 🚀 Getting Started
+
+### 1. Prerequisites
+
+Ensure your Raspberry Pi 5 is running **Raspberry Pi OS (64-bit, Bookworm)** and has the following installed:
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y cmake g++ libgpiod-dev liblgpio-dev
 ```
-The water path is simple. A small pump pushes water from a container through the flow sensor and out through the filling nozzle.
 
-Water Tank / Container
-│
-│
-┌────▼─────┐
-│ DC Pump │
-└────┬─────┘
-│
-┌────▼─────┐
-│ YF-S401 │
-│Flow Meter│
-└────┬─────┘
-│
-▼
-Nozzle
-│
-▼
-[Bottle]
-▲
-│
-HC-SR04 Ultrasonic Sensor
-(detects bottle under nozzle)
+### 2. Clone the Repository
 
+```bash
+git clone https://github.com/your-username/smartflow.git
+cd smartflow
 ```
----
 
-# System Operation
+### 3. Build the Project
 
-The system works through a simple automated cycle.
-
-| Step | Action |
-|----|----|
-| Step 1 | System waits for bottle |
-| Step 2 | Ultrasonic sensor detects bottle |
-| Step 3 | Bottle position confirmed |
-| Step 4 | Pump starts |
-| Step 5 | Flow sensor pulses counted |
-| Step 6 | Target volume reached |
-| Step 7 | Pump stops and system resets |
-
----
-
-# Complete Block Diagram
-                +----------------------+
-                |    Raspberry Pi 5    |
-                |                      |
-                |  Control State Machine
-                |                      |
-                |  Flow Pulse Counter  |
-                +----+------------+----+
-                     |            |
-                     |            |
-          Distance   |            | Pulse Signal
-                     |            |
-           +---------v----+   +---v----------+
-           | Ultrasonic   |   |   YF-S401    |
-           |    Sensor    |   | Flow Sensor  |
-           +--------------+   +--------------+
-
-                       Pump control
-                            |
-                            v
-                     +-------------+
-                     | TIP121      |
-                     | Transistor  |
-                     +------+------+
-                            |
-                            v
-                     +-------------+
-                     |  DC Pump    |
-                     +------+------+
-                            |
-                            v
-                      Water Output
-
-
----
-
-# Water Flow Architecture
-Water Container
-│
-▼
-DC Pump
-│
-▼
-YF-S401 Flow Sensor
-│
-▼
-Filling Nozzle
-│
-▼
-Bottle
-
-
----
-
-# Software Architecture
-
-The project is written in **C++** using modular classes so that each hardware component is handled independently.
-
-| Class | Responsibility |
-|------|------|
-| `UltrasonicSensor` | Measures bottle distance |
-| `PumpController` | Controls pump operation |
-| `FlowMeter` | Counts pulses and calculates volume |
-| `FillingController` | Controls system logic |
-| `Monitor` | Displays system status |
-
----
-
-# Control Logic
-
-The system operates using a simple **state machine**.
-
-## Control Logic
-
-The system operates using a simple state machine.
-
-```text
-System Start
-     │
-     ▼
-┌───────────────┐
-│   WAITING     │
-│ No bottle yet │
-└───────┬───────┘
-        │ bottle detected
-        ▼
-┌───────────────┐
-│ CONFIRMATION  │
-│ Bottle stable │
-└───────┬───────┘
-        │ confirmed
-        ▼
-┌───────────────┐
-│   FILLING     │
-│ Pump ON       │
-│ Count pulses  │
-└───────┬───────┘
-        │ volume reached
-        ▼
-┌───────────────┐
-│ FILL COMPLETE │
-│ Pump OFF      │
-└───────┬───────┘
-        │
-        ▼
-      WAITING
-
----
+```bash
+mkdir build && cd build
+cmake ..
+make -j4
 ```
-# Hardware Components
 
-| Component | Purpose | Estimated Cost |
-|------|------|------|
-| Raspberry Pi 5 | Main controller | £35–45 |
-| Mini DC Water Pump | Moves water | £5–8 |
-| TIP121 Transistor | Switch pump power | £1 |
-| YF-S401 Flow Sensor | Measures water flow | £3–5 |
-| HC-SR04 Ultrasonic Sensor | Detects bottle presence | £2–3 |
-| 1N4007 Diode | Protects transistor | £1 |
-| Resistors (1kΩ, 2kΩ) | Voltage divider & base resistor | £1 |
-| Breadboard & wires | Assembly | £3–5 |
-| Water tubing | Water transport | £2–3 |
+### 4. Run SmartFlow
 
-Estimated total cost: **£45–60**
+```bash
+sudo ./smartflow
+```
+
+> ⚠️ `sudo` is required for GPIO access on Raspberry Pi OS.
 
 ---
 
-# Development Plan
+## ⚙️ Configuration
 
-### Week 1
-Set up Raspberry Pi GPIO and test ultrasonic sensor.
+Edit `config/settings.cfg` before building:
 
-### Week 2
-Integrate pump and transistor driver.
+```ini
+[sensor]
+trig_pin         = 17
+echo_pin         = 27
+float_pin        = 24
+threshold_high   = 90        # % level to stop filling
+threshold_low    = 20        # % level to start filling
+poll_interval_ms = 500       # Sensor polling rate in milliseconds
 
-### Week 3
-Add flow sensor and pulse counting logic.
+[actuator]
+pump_pin         = 22
+valve_pin        = 23
+pump_on_delay    = 200       # ms delay before pump starts
 
-### Week 4
-Combine all components and test full filling cycle.
-
----
-
-# Conclusion
-
-This project demonstrates how a simple embedded system can automate a practical task such as filling bottles with water. By combining sensor feedback, real-time control, and a structured state machine, the Raspberry Pi manages the entire process automatically.
-
-Although the system is relatively simple, it reflects the same principles used in real industrial automation systems: sensor input, actuator control, and reliable timing.
-
-The project provides hands-on experience with:
-
-- Embedded C++
-- Raspberry Pi GPIO control
-- Sensor integration
-- Real-time system design
+[logging]
+enable           = true
+log_file         = /var/log/smartflow/fill_log.csv
+log_interval_s   = 5
+```
 
 ---
 
-# License
 
-MIT License
+---
+
+## 🔄 How It Works
+
+1. **Sensor** reads liquid level every 500ms via the HC-SR04 ultrasonic sensor on GPIO
+2. **Detection Logic** compares the reading against `threshold_high` and `threshold_low`
+3. **Controller** dispatches commands to start or stop the pump/valve via relay
+4. **Actuator** toggles GPIO pins to physically control the pump and solenoid valve
+5. **Logger** records every fill event, level reading, and system alert to a CSV file
+6. **Terminal Dashboard** prints live status, current fill %, and system state
+
+---
+
+## 🧪 Running Tests
+
+```bash
+cd build
+make test
+./smartflow_tests
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository
+2. Create a new branch (`git checkout -b feature/your-feature`)
+3. Commit your changes (`git commit -m 'Add your feature'`)
+4. Push to the branch (`git push origin feature/your-feature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+## 📬 Contact
+
+**SmartFlow Team**
+- GitHub: [@Eng5220/SmartFlowX](https://github.com/Eng5220/SmartFlowX)
+- TEAM:20
+
+---
+
+<p align="center">Built with precision on Raspberry Pi 5. Powered by C++ and Linux. 🐧💡</p>
