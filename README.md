@@ -167,36 +167,15 @@ The project is written in **C++** using modular classes so that each hardware co
 
 The system operates using a simple **state machine**.
 
-System Start
-│
-▼
-┌───────────────┐
-│ WAITING │
-│ No bottle yet │
-└───────┬───────┘
-│ bottle detected
-▼
-┌───────────────┐
-│ CONFIRMATION │
-│ Bottle stable │
-└───────┬───────┘
-│ confirmed
-▼
-┌───────────────┐
-│ FILLING │
-│ Pump ON │
-│ Count pulses │
-└───────┬───────┘
-│ volume reached
-▼
-┌───────────────┐
-│ FILL COMPLETE │
-│ Pump OFF │
-└───────┬───────┘
-│
-▼
-WAITING
+## Control Logic
 
+```mermaid
+stateDiagram-v2
+    [*] --> WAITING
+    WAITING --> CONFIRMATION : Bottle detected
+    CONFIRMATION --> FILLING : Bottle stable
+    FILLING --> FILL_COMPLETE : Target volume reached
+    FILL_COMPLETE --> WAITING : Reset system
 
 ---
 
