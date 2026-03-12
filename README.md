@@ -1,4 +1,4 @@
-# SmartFlow 💧
+# SmartFlowX💧
 
 > **Real-time automated filling system with intelligent level detection and precision flow control.**
 
@@ -35,14 +35,14 @@
 |-------|------------|
 | Language | C++17 |
 | Hardware | Raspberry Pi 5 |
-| Operating System | Raspberry Pi OS (Debian Bookworm, 64-bit) |
+| Operating System | Raspberry Pi OS (Linux) |
 | GPIO Library | `lgpio` / `libgpiod` |
 | Build System | CMake 3.16+ |
 | Level Sensor | Ultrasonic (HC-SR04) / Float Switch |
 | Actuator Control | 5V Relay Module (Pump & Valve) |
 | Communication | I2C / GPIO Digital Pins |
-| Data Logging | CSV flat-file logging |
-| Threading | POSIX Threads (`pthread`) / `std::thread` |
+| Data Logging | CSV file logging OR DB for IoT|
+
 
 ---
 
